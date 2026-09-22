@@ -1,0 +1,83 @@
+name: Deep HEAL Failure Scenarios
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Failure scenario"
+        required: true
+        type: choice
+        options:
+          - clean
+          - flaky_test
+          - build_failure
+          - resource_exhaustion
+          - deploy_anomaly
+          - security_violation
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Clean baseline
+        if: inputs.scenario == 'clean'
+        run: |
+          npm run build
+          npm test
+
+      - name: Flaky test
+        if: inputs.scenario == 'flaky_test'
+        run: |
+          echo "socket_timeout"
+          echo "intermittent test failure detected"
+
+          if [ "$GITHUB_RUN_ATTEMPT" -eq 1 ]; then
+            echo "flaky test failed on first attempt"
+            exit 1
+          fi
+
+          echo "flaky test passed on recovery attempt"
+
+      - name: Build failure
+        if: inputs.scenario == 'build_failure'
+        run: |
+          echo "compile_exit"
+          echo "dependency_hash mismatch"
+          echo "build compilation failed"
+          exit 1
+
+      - name: Resource exhaustion
+        if: inputs.scenario == 'resource_exhaustion'
+        run: |
+          echo "memory_limit exceeded"
+          echo "gc_pause detected"
+          echo "container_count limit reached"
+          exit 137
+
+      - name: Deployment anomaly
+        if: inputs.scenario == 'deploy_anomaly'
+        run: |
+          echo "canary_spike detected"
+          echo "latency_p99 exceeded threshold"
+          echo "bad_gateway from deployment"
+          exit 1
+
+      - name: Security violation
+        if: inputs.scenario == 'security_violation'
+        run: |
+          echo "secret_match detected"
+          echo "gitleaks policy_block"
+          echo "privileged_key detected"
+          exit 1
