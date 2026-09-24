@@ -8,13 +8,15 @@ on:
         required: true
         type: choice
         options:
+          - flaky_test
           - build_failure
           - resource_exhaustion
+          - deploy_anomaly
+          - security_violation
 
 jobs:
   failure-scenario:
     runs-on: ubuntu-latest
-
     steps:
       - name: Emit failure signature
         shell: bash
@@ -25,9 +27,18 @@ jobs:
           if [[ "${{ inputs.failure_type }}" == "build_failure" ]]; then
             echo "BUILD_FAILURE: cache corruption and compile error"
             echo "BUILD_FAILURE: dependency hash mismatch in artifact cache"
-          else
+          elif [[ "${{ inputs.failure_type }}" == "resource_exhaustion" ]]; then
             echo "RESOURCE_EXHAUSTION: out of memory and cgroup memory limit"
             echo "RESOURCE_EXHAUSTION: OOM SIGKILL after heap growth"
+          elif [[ "${{ inputs.failure_type }}" == "flaky_test" ]]; then
+            echo "FLAKY_TEST: socket timeout and assertion error"
+            echo "FLAKY_TEST: dirty thread caused a race condition"
+          elif [[ "${{ inputs.failure_type }}" == "deploy_anomaly" ]]; then
+            echo "DEPLOY_ANOMALY: canary returned 502 bad gateway"
+            echo "DEPLOY_ANOMALY: liveness probe failed; rollback required"
+          else
+            echo "SECURITY_VIOLATION: secret leak detected by Gitleaks"
+            echo "SECURITY_VIOLATION: privileged key blocked by security policy"
           fi
 
           if [[ "${{ github.run_attempt }}" == "1" ]]; then
