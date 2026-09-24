@@ -1,0 +1,38 @@
+name: Deep HEAL Recovery Showcase
+
+on:
+  workflow_dispatch:
+    inputs:
+      failure_type:
+        description: Failure scenario to inject
+        required: true
+        type: choice
+        options:
+          - build_failure
+          - resource_exhaustion
+
+jobs:
+  failure-scenario:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Emit failure signature
+        shell: bash
+        run: |
+          echo "FAILURE_TYPE=${{ inputs.failure_type }}"
+          echo "Deep HEAL showcase attempt ${{ github.run_attempt }}"
+
+          if [[ "${{ inputs.failure_type }}" == "build_failure" ]]; then
+            echo "BUILD_FAILURE: cache corruption and compile error"
+            echo "BUILD_FAILURE: dependency hash mismatch in artifact cache"
+          else
+            echo "RESOURCE_EXHAUSTION: out of memory and cgroup memory limit"
+            echo "RESOURCE_EXHAUSTION: OOM SIGKILL after heap growth"
+          fi
+
+          if [[ "${{ github.run_attempt }}" == "1" ]]; then
+            echo "Intentional first-attempt failure: Deep HEAL should rerun this job"
+            exit 1
+          fi
+
+          echo "Recovery rerun succeeded on attempt ${{ github.run_attempt }}"
